@@ -3,40 +3,46 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-// GET all patients
+// GET all clients
 export async function GET() {
   try {
-    const patients = await prisma.patient.findMany({
+    const clients = await prisma.client.findMany({
+      include: {
+        pets: true,
+        _count: {
+          select: { examinations: true },
+        },
+      },
       orderBy: { createdAt: "desc" },
     });
-    return NextResponse.json(patients);
+    return NextResponse.json(clients);
   } catch (error) {
     console.error("Database error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch patients", details: String(error) },
+      { error: "Failed to fetch clients", details: String(error) },
       { status: 500 }
     );
   }
 }
 
-// POST create patient
+// POST create client
 export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    const patient = await prisma.patient.create({
+    const client = await prisma.client.create({
       data: {
-        name: body.name,
-        email: body.email,
-        phone: body.phone || null,
+        nama: body.nama,
+        alamat: body.alamat,
+        noTelp: body.noTelp,
       },
     });
 
-    return NextResponse.json(patient, { status: 201 });
+    return NextResponse.json(client, { status: 201 });
   } catch (error) {
     console.error("Database error:", error);
     return NextResponse.json(
-      { error: "Failed to create patient", details: String(error) },
+      { error: "Failed to create client", details: String(error) },
       { status: 500 }
     );
   }

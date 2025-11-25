@@ -1,0 +1,644 @@
+"use client";
+
+import { useState, useEffect } from "react";
+
+interface Client {
+  id: string;
+  nama: string;
+  noTelp?: string | null;
+}
+
+interface Pet {
+  id: string;
+  namaHewan: string;
+  spesies: string;
+}
+
+interface Veterinarian {
+  id: string;
+  nama: string;
+  spesialisasi?: string | null;
+}
+
+interface Examination {
+  id: string;
+  tanggalPemeriksaan: string;
+  suhu?: number | null;
+  heartRate?: number | null;
+  penampilan?: string | null;
+  mata?: string | null;
+  telinga?: string | null;
+  hidung?: string | null;
+  mulut?: string | null;
+  kulitRambut?: string | null;
+  limfonodus?: string | null;
+  mukosa?: string | null;
+  abdomen?: string | null;
+  thoraks?: string | null;
+  gastro?: string | null;
+  respiratory?: string | null;
+  tulangDanOtot?: string | null;
+  ekstremitas?: string | null;
+  urogenital?: string | null;
+  diagnosis?: string | null;
+  treatment?: string | null;
+  prescription?: string | null;
+  notes?: string | null;
+  client: Client;
+  pet: Pet;
+  veterinarian: Veterinarian;
+}
+
+export default function ExaminationsPage() {
+  const [examinations, setExaminations] = useState<Examination[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [pets, setPets] = useState<Pet[]>([]);
+  const [vets, setVets] = useState<Veterinarian[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState({
+    clientId: "",
+    petId: "",
+    veterinarianId: "",
+    tanggalPemeriksaan: new Date().toISOString().split("T")[0],
+    suhu: "",
+    heartRate: "",
+    penampilan: "",
+    mata: "",
+    telinga: "",
+    hidung: "",
+    mulut: "",
+    kulitRambut: "",
+    limfonodus: "",
+    mukosa: "",
+    abdomen: "",
+    thoraks: "",
+    gastro: "",
+    respiratory: "",
+    tulangDanOtot: "",
+    ekstremitas: "",
+    urogenital: "",
+    diagnosis: "",
+    treatment: "",
+    prescription: "",
+    notes: "",
+  });
+
+  useEffect(() => {
+    fetchExaminations();
+    fetchClients();
+    fetchPets();
+    fetchVets();
+  }, []);
+
+  const fetchExaminations = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const res = await fetch("/api/examinations");
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+
+      const data = await res.json();
+      setExaminations(data);
+    } catch (error) {
+      console.error("Error fetching examinations:", error);
+      setError(
+        error instanceof Error ? error.message : "Failed to fetch examinations"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchClients = async () => {
+    try {
+      const res = await fetch("/api/clients");
+      if (res.ok) {
+        const data = await res.json();
+        setClients(data);
+      }
+    } catch (error) {
+      console.error("Error fetching clients:", error);
+    }
+  };
+
+  const fetchPets = async () => {
+    try {
+      const res = await fetch("/api/pets");
+      if (res.ok) {
+        const data = await res.json();
+        setPets(data);
+      }
+    } catch (error) {
+      console.error("Error fetching pets:", error);
+    }
+  };
+
+  const fetchVets = async () => {
+    try {
+      const res = await fetch("/api/veterinarians");
+      if (res.ok) {
+        const data = await res.json();
+        setVets(data);
+      }
+    } catch (error) {
+      console.error("Error fetching vets:", error);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      const res = await fetch("/api/examinations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to create examination");
+      }
+
+      // Reset form
+      setFormData({
+        clientId: "",
+        petId: "",
+        veterinarianId: "",
+        tanggalPemeriksaan: new Date().toISOString().split("T")[0],
+        suhu: "",
+        heartRate: "",
+        penampilan: "",
+        mata: "",
+        telinga: "",
+        hidung: "",
+        mulut: "",
+        kulitRambut: "",
+        limfonodus: "",
+        mukosa: "",
+        abdomen: "",
+        thoraks: "",
+        gastro: "",
+        respiratory: "",
+        tulangDanOtot: "",
+        ekstremitas: "",
+        urogenital: "",
+        diagnosis: "",
+        treatment: "",
+        prescription: "",
+        notes: "",
+      });
+      setShowForm(false);
+      fetchExaminations();
+    } catch (error) {
+      console.error("Error creating examination:", error);
+      alert(
+        error instanceof Error ? error.message : "Failed to create examination"
+      );
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-xl">Loading examinations...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-center">
+          <div className="text-xl text-red-600 mb-4">Error: {error}</div>
+          <button
+            onClick={fetchExaminations}
+            className="bg-blue-600 text-white px-4 py-2 rounded"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto p-8 max-w-7xl">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-4xl font-bold">📋 Medical Examinations</h1>
+        <button
+          onClick={() => setShowForm(!showForm)}
+          className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition font-medium"
+        >
+          {showForm ? "Hide Form" : "➕ New Examination"}
+        </button>
+      </div>
+
+      {/* Form Add Examination */}
+      {showForm && (
+        <div className="bg-white shadow-md rounded-lg p-6 mb-8">
+          <h2 className="text-2xl font-semibold mb-4">New Examination</h2>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Basic Info */}
+            <div className="border-b pb-4">
+              <h3 className="text-lg font-semibold mb-3 text-gray-700">
+                Basic Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-700">
+                    Client *
+                  </label>
+                  <select
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                    value={formData.clientId}
+                    onChange={(e) =>
+                      setFormData({ ...formData, clientId: e.target.value })
+                    }
+                  >
+                    <option value="">Pilih Client</option>
+                    {clients.map((client) => (
+                      <option key={client.id} value={client.id}>
+                        {client.nama}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-700">
+                    Pet *
+                  </label>
+                  <select
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                    value={formData.petId}
+                    onChange={(e) =>
+                      setFormData({ ...formData, petId: e.target.value })
+                    }
+                  >
+                    <option value="">Pilih Pet</option>
+                    {pets.map((pet) => (
+                      <option key={pet.id} value={pet.id}>
+                        {pet.namaHewan} ({pet.spesies})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-700">
+                    Veterinarian *
+                  </label>
+                  <select
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                    value={formData.veterinarianId}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        veterinarianId: e.target.value,
+                      })
+                    }
+                  >
+                    <option value="">Pilih Veterinarian</option>
+                    {vets.map((vet) => (
+                      <option key={vet.id} value={vet.id}>
+                        {vet.nama} {vet.spesialisasi && `(${vet.spesialisasi})`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-700">
+                    Tanggal Pemeriksaan *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                    value={formData.tanggalPemeriksaan}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        tanggalPemeriksaan: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Vital Signs */}
+            <div className="border-b pb-4">
+              <h3 className="text-lg font-semibold mb-3 text-gray-700">
+                Vital Signs
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-700">
+                    Suhu (°C)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                    value={formData.suhu}
+                    onChange={(e) =>
+                      setFormData({ ...formData, suhu: e.target.value })
+                    }
+                    placeholder="38.5"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-700">
+                    Heart Rate (bpm)
+                  </label>
+                  <input
+                    type="number"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                    value={formData.heartRate}
+                    onChange={(e) =>
+                      setFormData({ ...formData, heartRate: e.target.value })
+                    }
+                    placeholder="90"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Physical Examination */}
+            <div className="border-b pb-4">
+              <h3 className="text-lg font-semibold mb-3 text-gray-700">
+                Physical Examination
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[
+                  { key: "penampilan", label: "Penampilan" },
+                  { key: "mata", label: "Mata" },
+                  { key: "telinga", label: "Telinga" },
+                  { key: "hidung", label: "Hidung" },
+                  { key: "mulut", label: "Mulut" },
+                  { key: "kulitRambut", label: "Kulit & Rambut" },
+                  { key: "limfonodus", label: "Limfonodus" },
+                  { key: "mukosa", label: "Mukosa" },
+                  { key: "abdomen", label: "Abdomen" },
+                  { key: "thoraks", label: "Thoraks" },
+                ].map((field) => (
+                  <div key={field.key}>
+                    <label className="block text-sm font-medium mb-1 text-gray-700">
+                      {field.label}
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      value={formData[field.key as keyof typeof formData]}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          [field.key]: e.target.value,
+                        })
+                      }
+                      placeholder="Normal"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* System Examination */}
+            <div className="border-b pb-4">
+              <h3 className="text-lg font-semibold mb-3 text-gray-700">
+                System Examination
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[
+                  { key: "gastro", label: "Gastrointestinal" },
+                  { key: "respiratory", label: "Respiratory" },
+                  { key: "tulangDanOtot", label: "Tulang & Otot" },
+                  { key: "ekstremitas", label: "Ekstremitas" },
+                  { key: "urogenital", label: "Urogenital" },
+                ].map((field) => (
+                  <div key={field.key}>
+                    <label className="block text-sm font-medium mb-1 text-gray-700">
+                      {field.label}
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      value={formData[field.key as keyof typeof formData]}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          [field.key]: e.target.value,
+                        })
+                      }
+                      placeholder="Normal"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Diagnosis & Treatment */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3 text-gray-700">
+                Diagnosis & Treatment
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-700">
+                    Diagnosis
+                  </label>
+                  <textarea
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                    value={formData.diagnosis}
+                    onChange={(e) =>
+                      setFormData({ ...formData, diagnosis: e.target.value })
+                    }
+                    rows={3}
+                    placeholder="Sehat, check-up rutin"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-700">
+                    Treatment
+                  </label>
+                  <textarea
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                    value={formData.treatment}
+                    onChange={(e) =>
+                      setFormData({ ...formData, treatment: e.target.value })
+                    }
+                    rows={3}
+                    placeholder="Vaksinasi rabies"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-700">
+                    Prescription
+                  </label>
+                  <textarea
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                    value={formData.prescription}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        prescription: e.target.value,
+                      })
+                    }
+                    rows={3}
+                    placeholder="Vitamin A, 1x sehari"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-700">
+                    Notes
+                  </label>
+                  <textarea
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                    value={formData.notes}
+                    onChange={(e) =>
+                      setFormData({ ...formData, notes: e.target.value })
+                    }
+                    rows={3}
+                    placeholder="Catatan tambahan..."
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+              <button
+                type="submit"
+                className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition font-medium"
+              >
+                Save Examination
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowForm(false)}
+                className="px-6 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400 transition font-medium"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Examination List */}
+      <div className="space-y-4">
+        <h2 className="text-2xl font-semibold mb-4">
+          All Examinations ({examinations.length})
+        </h2>
+
+        {examinations.length === 0 ? (
+          <div className="text-center py-12 bg-gray-50 rounded-lg">
+            <p className="text-gray-500 text-lg">No examinations yet.</p>
+            <p className="text-gray-400 mt-2">
+              Add your first examination above!
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            {examinations.map((exam) => (
+              <div
+                key={exam.id}
+                className="border border-gray-200 rounded-lg shadow-sm p-6 hover:shadow-md transition bg-white"
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="text-xl font-semibold text-gray-900">
+                      {exam.pet.namaHewan} ({exam.pet.spesies})
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      Owner: {exam.client.nama}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-gray-700">
+                      {new Date(exam.tanggalPemeriksaan).toLocaleDateString(
+                        "id-ID",
+                        {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        }
+                      )}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Dr. {exam.veterinarian.nama}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                  {exam.suhu && (
+                    <div className="bg-blue-50 p-3 rounded">
+                      <p className="text-xs text-gray-600">Temperature</p>
+                      <p className="text-lg font-semibold text-blue-600">
+                        {exam.suhu}°C
+                      </p>
+                    </div>
+                  )}
+                  {exam.heartRate && (
+                    <div className="bg-red-50 p-3 rounded">
+                      <p className="text-xs text-gray-600">Heart Rate</p>
+                      <p className="text-lg font-semibold text-red-600">
+                        {exam.heartRate} bpm
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {exam.diagnosis && (
+                  <div className="mb-3">
+                    <p className="text-sm font-medium text-gray-700">
+                      Diagnosis:
+                    </p>
+                    <p className="text-sm text-gray-600">{exam.diagnosis}</p>
+                  </div>
+                )}
+
+                {exam.treatment && (
+                  <div className="mb-3">
+                    <p className="text-sm font-medium text-gray-700">
+                      Treatment:
+                    </p>
+                    <p className="text-sm text-gray-600">{exam.treatment}</p>
+                  </div>
+                )}
+
+                {exam.prescription && (
+                  <div className="mb-3">
+                    <p className="text-sm font-medium text-gray-700">
+                      Prescription:
+                    </p>
+                    <p className="text-sm text-gray-600">{exam.prescription}</p>
+                  </div>
+                )}
+
+                {exam.notes && (
+                  <div className="mt-3 pt-3 border-t border-gray-200">
+                    <p className="text-xs font-medium text-gray-700">Notes:</p>
+                    <p className="text-xs text-gray-600">{exam.notes}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

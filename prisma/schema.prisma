@@ -1,32 +1,113 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
-  url = env("DATABASE_URL")
+  url      = env("DATABASE_URL")
 }
 
-model Patient {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  phone     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+// Identitas Klien (Pemilik Hewan)
+model Client {
+  id               String    @id @default(cuid())
+  nama             String
+  alamat           String?
+  noTelp           String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+    
+  // Relations
+  pets             Pet[]
+  examinations     Examination[]
+  
+  @@map("clients")
 }
 
-model Appointment {
-  id        String   @id @default(cuid())
-  patientId String
-  date      DateTime
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+// Identitas Hewan
+model Pet {
+  id               String    @id @default(cuid())
+  clientId         String
+  namaHewan        String
+  spesies          String    // Anjing, Kucing, Kelinci, dll
+  breed            String?   // Ras
+  beratBadan       Float?    // dalam kg
+  umur             Int?      // dalam tahun atau bulan
+  umurSatuan       String?   // "tahun" atau "bulan"
+  gender           String    // "Jantan" atau "Betina"
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  
+  // Relations
+  client           Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  examinations     Examination[]
+  
+  @@map("pets")
+}
+
+// DVM (Doctor Veterinary Medicine) / Dokter Hewan
+model Veterinarian {
+  id               String    @id @default(cuid())
+  nama             String
+  nomorLisensi     String?   @unique
+  spesialisasi     String?
+  noTelp           String?
+  email            String?   @unique
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  
+  // Relations
+  examinations     Examination[]
+  
+  @@map("veterinarians")
+}
+
+// Pemeriksaan / Medical Examination
+model Examination {
+  id                    String    @id @default(cuid())
+  clientId              String
+  petId                 String
+  veterinarianId        String
+  tanggalPemeriksaan    DateTime  @default(now())
+  
+  // Kondisi Hewan - Vital Signs
+  suhu                  Float?    // dalam Celcius
+  heartRate             Int?      // detak per menit
+  
+  // Kondisi Hewan - Physical Examination
+  penampilan            String?   @db.Text
+  mata                  String?   @db.Text
+  telinga               String?   @db.Text
+  hidung                String?   @db.Text
+  mulut                 String?   @db.Text
+  kulitRambut           String?   @db.Text
+  limfonodus            String?   @db.Text
+  mukosa                String?   @db.Text
+  abdomen               String?   @db.Text
+  thoraks               String?   @db.Text
+  
+  // System Examination
+  gastro                String?   @db.Text  // Gastrointestinal
+  respiratory           String?   @db.Text  // Sistem pernapasan
+  tulangDanOtot         String?   @db.Text
+  ekstremitas           String?   @db.Text
+  urogenital            String?   @db.Text
+  
+  // Diagnosis & Treatment
+  diagnosis             String?   @db.Text
+  treatment             String?   @db.Text
+  prescription          String?   @db.Text  // Resep obat
+  notes                 String?   @db.Text
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  // Relations
+  client                Client         @relation(fields: [clientId], references: [id])
+  pet                   Pet            @relation(fields: [petId], references: [id])
+  veterinarian          Veterinarian   @relation(fields: [veterinarianId], references: [id])
+  
+  @@map("examinations")
 }
