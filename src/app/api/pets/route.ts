@@ -3,7 +3,7 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-// GET all pets
+// READ: GET all pets
 export async function GET() {
   try {
     const pets = await prisma.pet.findMany({
@@ -31,7 +31,7 @@ export async function GET() {
   }
 }
 
-// POST create pet
+// CREATE: POST new pet
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -41,10 +41,10 @@ export async function POST(request: Request) {
         clientId: body.clientId,
         namaHewan: body.namaHewan,
         spesies: body.spesies,
-        breed: body.breed,
+        breed: body.breed || null,
         beratBadan: body.beratBadan ? parseFloat(body.beratBadan) : null,
         umur: body.umur ? parseInt(body.umur) : null,
-        umurSatuan: body.umurSatuan,
+        umurSatuan: body.umurSatuan || null,
         gender: body.gender,
       },
       include: {
