@@ -53,7 +53,7 @@ async function main() {
   console.log("✅ Created Pet:", pet1.namaHewan);
 
   // Create Examination
-  const exam1 = await prisma.examination.create({
+  await prisma.examination.create({
     data: {
       clientId: client1.id,
       petId: pet1.id,
@@ -84,8 +84,6 @@ async function main() {
   });
 
   console.log("✅ Created Examination for", pet1.namaHewan);
-
-  console.log("🎉 Seed data created successfully!");
 }
 
 main()
