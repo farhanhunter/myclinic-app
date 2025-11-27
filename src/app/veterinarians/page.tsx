@@ -19,13 +19,20 @@ export default function VeterinariansPage() {
   const [vets, setVets] = useState<Veterinarian[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
+
+  // Form state
+  const emptyForm = {
+    id: "",
     nama: "",
     nomorLisensi: "",
     spesialisasi: "",
     noTelp: "",
     email: "",
-  });
+  };
+
+  const [formData, setFormData] = useState(emptyForm);
+  const [isEditing, setIsEditing] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     fetchVets();
@@ -51,36 +58,95 @@ export default function VeterinariansPage() {
     }
   };
 
+  // CREATE or UPDATE
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitting(true);
 
     try {
-      const res = await fetch("/api/veterinarians", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+      if (isEditing && formData.id) {
+        // UPDATE
+        const res = await fetch(`/api/veterinarians/${formData.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
+
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.error || "Failed to update veterinarian");
+        }
+
+        const updated = await res.json();
+        setVets((prev) => prev.map((v) => (v.id === updated.id ? updated : v)));
+        alert("Veterinarian updated successfully!");
+      } else {
+        // CREATE
+        const res = await fetch("/api/veterinarians", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
+
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.error || "Failed to create veterinarian");
+        }
+
+        const created = await res.json();
+        setVets((prev) => [created, ...prev]);
+        alert("Veterinarian created successfully!");
+      }
+
+      resetForm();
+    } catch (error) {
+      console.error("Error:", error);
+      alert(error instanceof Error ? error.message : "Operation failed");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // DELETE
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Are you sure you want to delete ${name}?`)) return;
+
+    try {
+      const res = await fetch(`/api/veterinarians/${id}`, {
+        method: "DELETE",
       });
 
       if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(errorData.error || "Failed to create veterinarian");
+        throw new Error(errorData.error || "Failed to delete veterinarian");
       }
 
-      setFormData({
-        nama: "",
-        nomorLisensi: "",
-        spesialisasi: "",
-        noTelp: "",
-        email: "",
-      });
-      fetchVets();
+      setVets((prev) => prev.filter((v) => v.id !== id));
+      alert("Veterinarian deleted successfully!");
     } catch (error) {
-      console.error("Error creating veterinarian:", error);
-      alert(
-        error instanceof Error ? error.message : "Failed to create veterinarian"
-      );
+      console.error("Error:", error);
+      alert(error instanceof Error ? error.message : "Delete failed");
     }
   };
+
+  // Edit mode
+  function startEdit(vet: Veterinarian) {
+    setFormData({
+      id: vet.id,
+      nama: vet.nama,
+      nomorLisensi: vet.nomorLisensi || "",
+      spesialisasi: vet.spesialisasi || "",
+      noTelp: vet.noTelp || "",
+      email: vet.email || "",
+    });
+    setIsEditing(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function resetForm() {
+    setFormData(emptyForm);
+    setIsEditing(false);
+  }
 
   if (loading) {
     return (
@@ -108,11 +174,13 @@ export default function VeterinariansPage() {
 
   return (
     <div className="container mx-auto p-8 max-w-6xl">
-      <h1 className="text-4xl font-bold mb-8">👨‍⚕️ Veterinarians</h1>
+      <h1 className="text-4xl font-bold mb-8">👨‍⚕️ Veterinarians Management</h1>
 
-      {/* Form Add Veterinarian */}
+      {/* CREATE/UPDATE FORM */}
       <div className="bg-white shadow-md rounded-lg p-6 mb-8">
-        <h2 className="text-2xl font-semibold mb-4">Add New Veterinarian</h2>
+        <h2 className="text-2xl font-semibold mb-4">
+          {isEditing ? "Edit Veterinarian" : "Add New Veterinarian"}
+        </h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -187,21 +255,38 @@ export default function VeterinariansPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, email: e.target.value })
                 }
-                placeholder="dr.budi@example.com"
+                placeholder="dr. budi@example.com"
               />
             </div>
           </div>
 
-          <button
-            type="submit"
-            className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition font-medium"
-          >
-            Add Veterinarian
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              disabled={submitting}
+              className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition font-medium disabled:opacity-50"
+            >
+              {submitting
+                ? "Saving..."
+                : isEditing
+                ? "Update Veterinarian"
+                : "Add Veterinarian"}
+            </button>
+
+            {isEditing && (
+              <button
+                type="button"
+                onClick={resetForm}
+                className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition"
+              >
+                Cancel
+              </button>
+            )}
+          </div>
         </form>
       </div>
 
-      {/* Veterinarian List */}
+      {/* VETERINARIAN LIST */}
       <div className="space-y-4">
         <h2 className="text-2xl font-semibold mb-4">
           All Veterinarians ({vets.length})
@@ -249,13 +334,28 @@ export default function VeterinariansPage() {
                   )}
                 </div>
 
-                <div className="pt-3 border-t border-gray-200">
+                <div className="flex gap-2 mt-4">
+                  <button
+                    onClick={() => startEdit(vet)}
+                    className="flex-1 bg-yellow-100 text-yellow-700 px-3 py-1 rounded hover:bg-yellow-200 transition text-sm font-medium"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(vet.id, vet.nama)}
+                    className="flex-1 bg-red-100 text-red-700 px-3 py-1 rounded hover:bg-red-200 transition text-sm font-medium"
+                  >
+                    Delete
+                  </button>
+                </div>
+
+                <div className="pt-3 border-t border-gray-200 mt-3">
                   <p className="text-sm text-gray-600">
                     📋 {vet._count.examinations} examination(s)
                   </p>
                 </div>
 
-                <p className="text-xs text-gray-400 mt-3">
+                <p className="text-xs text-gray-400 mt-2">
                   Registered:{" "}
                   {new Date(vet.createdAt).toLocaleDateString("id-ID", {
                     year: "numeric",
