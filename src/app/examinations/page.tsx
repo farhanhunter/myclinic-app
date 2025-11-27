@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 
+// Types (same as before)
 interface Client {
   id: string;
   nama: string;
@@ -57,7 +58,10 @@ export default function ExaminationsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({
+
+  // Form state
+  const emptyForm = {
+    id: "",
     clientId: "",
     petId: "",
     veterinarianId: "",
@@ -83,123 +87,161 @@ export default function ExaminationsPage() {
     treatment: "",
     prescription: "",
     notes: "",
-  });
+  };
+
+  const [formData, setFormData] = useState(emptyForm);
+  const [isEditing, setIsEditing] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    fetchExaminations();
-    fetchClients();
-    fetchPets();
-    fetchVets();
+    fetchAll();
   }, []);
 
-  const fetchExaminations = async () => {
+  const fetchAll = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
+      const [examsRes, clientsRes, petsRes, vetsRes] = await Promise.all([
+        fetch("/api/examinations"),
+        fetch("/api/clients"),
+        fetch("/api/pets"),
+        fetch("/api/veterinarians"),
+      ]);
+
+      if (!examsRes.ok) throw new Error("Failed to fetch examinations");
+
+      const examsData = await examsRes.json();
+      const clientsData = clientsRes.ok ? await clientsRes.json() : [];
+      const petsData = petsRes.ok ? await petsRes.json() : [];
+      const vetsData = vetsRes.ok ? await vetsRes.json() : [];
+
+      setExaminations(examsData);
+      setClients(clientsData);
+      setPets(petsData);
+      setVets(vetsData);
       setError(null);
-
-      const res = await fetch("/api/examinations");
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-
-      const data = await res.json();
-      setExaminations(data);
-    } catch (error) {
-      console.error("Error fetching examinations:", error);
-      setError(
-        error instanceof Error ? error.message : "Failed to fetch examinations"
-      );
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : "Failed to load data");
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchClients = async () => {
-    try {
-      const res = await fetch("/api/clients");
-      if (res.ok) {
-        const data = await res.json();
-        setClients(data);
-      }
-    } catch (error) {
-      console.error("Error fetching clients:", error);
-    }
-  };
-
-  const fetchPets = async () => {
-    try {
-      const res = await fetch("/api/pets");
-      if (res.ok) {
-        const data = await res.json();
-        setPets(data);
-      }
-    } catch (error) {
-      console.error("Error fetching pets:", error);
-    }
-  };
-
-  const fetchVets = async () => {
-    try {
-      const res = await fetch("/api/veterinarians");
-      if (res.ok) {
-        const data = await res.json();
-        setVets(data);
-      }
-    } catch (error) {
-      console.error("Error fetching vets:", error);
-    }
-  };
-
+  // CREATE or UPDATE
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitting(true);
 
     try {
-      const res = await fetch("/api/examinations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+      if (isEditing && formData.id) {
+        // UPDATE
+        const res = await fetch(`/api/examinations/${formData.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
+
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.error || "Failed to update examination");
+        }
+
+        const updated = await res.json();
+        setExaminations((prev) =>
+          prev.map((e) => (e.id === updated.id ? updated : e))
+        );
+        alert("Examination updated successfully!");
+      } else {
+        // CREATE
+        const res = await fetch("/api/examinations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
+
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.error || "Failed to create examination");
+        }
+
+        const created = await res.json();
+        setExaminations((prev) => [created, ...prev]);
+        alert("Examination created successfully!");
+      }
+
+      resetForm();
+    } catch (error) {
+      console.error("Error:", error);
+      alert(error instanceof Error ? error.message : "Operation failed");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // DELETE
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this examination?")) return;
+
+    try {
+      const res = await fetch(`/api/examinations/${id}`, {
+        method: "DELETE",
       });
 
       if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(errorData.error || "Failed to create examination");
+        throw new Error(errorData.error || "Failed to delete examination");
       }
 
-      // Reset form
-      setFormData({
-        clientId: "",
-        petId: "",
-        veterinarianId: "",
-        tanggalPemeriksaan: new Date().toISOString().split("T")[0],
-        suhu: "",
-        heartRate: "",
-        penampilan: "",
-        mata: "",
-        telinga: "",
-        hidung: "",
-        mulut: "",
-        kulitRambut: "",
-        limfonodus: "",
-        mukosa: "",
-        abdomen: "",
-        thoraks: "",
-        gastro: "",
-        respiratory: "",
-        tulangDanOtot: "",
-        ekstremitas: "",
-        urogenital: "",
-        diagnosis: "",
-        treatment: "",
-        prescription: "",
-        notes: "",
-      });
-      setShowForm(false);
-      fetchExaminations();
+      setExaminations((prev) => prev.filter((e) => e.id !== id));
+      alert("Examination deleted successfully!");
     } catch (error) {
-      console.error("Error creating examination:", error);
-      alert(
-        error instanceof Error ? error.message : "Failed to create examination"
-      );
+      console.error("Error:", error);
+      alert(error instanceof Error ? error.message : "Delete failed");
     }
   };
+
+  // Edit mode
+  function startEdit(exam: Examination) {
+    setFormData({
+      id: exam.id,
+      clientId: exam.client.id,
+      petId: exam.pet.id,
+      veterinarianId: exam.veterinarian.id,
+      tanggalPemeriksaan: new Date(exam.tanggalPemeriksaan)
+        .toISOString()
+        .split("T")[0],
+      suhu: exam.suhu ? String(exam.suhu) : "",
+      heartRate: exam.heartRate ? String(exam.heartRate) : "",
+      penampilan: exam.penampilan || "",
+      mata: exam.mata || "",
+      telinga: exam.telinga || "",
+      hidung: exam.hidung || "",
+      mulut: exam.mulut || "",
+      kulitRambut: exam.kulitRambut || "",
+      limfonodus: exam.limfonodus || "",
+      mukosa: exam.mukosa || "",
+      abdomen: exam.abdomen || "",
+      thoraks: exam.thoraks || "",
+      gastro: exam.gastro || "",
+      respiratory: exam.respiratory || "",
+      tulangDanOtot: exam.tulangDanOtot || "",
+      ekstremitas: exam.ekstremitas || "",
+      urogenital: exam.urogenital || "",
+      diagnosis: exam.diagnosis || "",
+      treatment: exam.treatment || "",
+      prescription: exam.prescription || "",
+      notes: exam.notes || "",
+    });
+    setIsEditing(true);
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function resetForm() {
+    setFormData(emptyForm);
+    setIsEditing(false);
+    setShowForm(false);
+  }
 
   if (loading) {
     return (
@@ -215,7 +257,7 @@ export default function ExaminationsPage() {
         <div className="text-center">
           <div className="text-xl text-red-600 mb-4">Error: {error}</div>
           <button
-            onClick={fetchExaminations}
+            onClick={fetchAll}
             className="bg-blue-600 text-white px-4 py-2 rounded"
           >
             Retry
@@ -230,19 +272,31 @@ export default function ExaminationsPage() {
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-4xl font-bold">📋 Medical Examinations</h1>
         <button
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => {
+            if (showForm && isEditing) {
+              resetForm();
+            } else {
+              setShowForm(!showForm);
+            }
+          }}
           className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition font-medium"
         >
-          {showForm ? "Hide Form" : "➕ New Examination"}
+          {showForm
+            ? isEditing
+              ? "Cancel Edit"
+              : "Hide Form"
+            : "➕ New Examination"}
         </button>
       </div>
 
-      {/* Form Add Examination */}
+      {/* FORM (CREATE/UPDATE) */}
       {showForm && (
         <div className="bg-white shadow-md rounded-lg p-6 mb-8">
-          <h2 className="text-2xl font-semibold mb-4">New Examination</h2>
+          <h2 className="text-2xl font-semibold mb-4">
+            {isEditing ? "Edit Examination" : "New Examination"}
+          </h2>
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Basic Info */}
+            {/* Basic Info - Same as before but with value bindings */}
             <div className="border-b pb-4">
               <h3 className="text-lg font-semibold mb-3 text-gray-700">
                 Basic Information
@@ -260,7 +314,7 @@ export default function ExaminationsPage() {
                       setFormData({ ...formData, clientId: e.target.value })
                     }
                   >
-                    <option value="">Pilih Client</option>
+                    <option value="">Select Client</option>
                     {clients.map((client) => (
                       <option key={client.id} value={client.id}>
                         {client.nama}
@@ -281,7 +335,7 @@ export default function ExaminationsPage() {
                       setFormData({ ...formData, petId: e.target.value })
                     }
                   >
-                    <option value="">Pilih Pet</option>
+                    <option value="">Select Pet</option>
                     {pets.map((pet) => (
                       <option key={pet.id} value={pet.id}>
                         {pet.namaHewan} ({pet.spesies})
@@ -305,7 +359,7 @@ export default function ExaminationsPage() {
                       })
                     }
                   >
-                    <option value="">Pilih Veterinarian</option>
+                    <option value="">Select Veterinarian</option>
                     {vets.map((vet) => (
                       <option key={vet.id} value={vet.id}>
                         {vet.nama} {vet.spesialisasi && `(${vet.spesialisasi})`}
@@ -316,7 +370,7 @@ export default function ExaminationsPage() {
 
                 <div>
                   <label className="block text-sm font-medium mb-1 text-gray-700">
-                    Tanggal Pemeriksaan *
+                    Date *
                   </label>
                   <input
                     type="date"
@@ -334,7 +388,7 @@ export default function ExaminationsPage() {
               </div>
             </div>
 
-            {/* Vital Signs */}
+            {/* Vital Signs - Same structure */}
             <div className="border-b pb-4">
               <h3 className="text-lg font-semibold mb-3 text-gray-700">
                 Vital Signs
@@ -342,7 +396,7 @@ export default function ExaminationsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1 text-gray-700">
-                    Suhu (°C)
+                    Temperature (°C)
                   </label>
                   <input
                     type="number"
@@ -373,23 +427,23 @@ export default function ExaminationsPage() {
               </div>
             </div>
 
-            {/* Physical Examination */}
+            {/* Physical Examination - Same structure but shortened for space */}
             <div className="border-b pb-4">
               <h3 className="text-lg font-semibold mb-3 text-gray-700">
                 Physical Examination
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[
-                  { key: "penampilan", label: "Penampilan" },
-                  { key: "mata", label: "Mata" },
-                  { key: "telinga", label: "Telinga" },
-                  { key: "hidung", label: "Hidung" },
-                  { key: "mulut", label: "Mulut" },
-                  { key: "kulitRambut", label: "Kulit & Rambut" },
-                  { key: "limfonodus", label: "Limfonodus" },
-                  { key: "mukosa", label: "Mukosa" },
+                  { key: "penampilan", label: "Appearance" },
+                  { key: "mata", label: "Eyes" },
+                  { key: "telinga", label: "Ears" },
+                  { key: "hidung", label: "Nose" },
+                  { key: "mulut", label: "Mouth" },
+                  { key: "kulitRambut", label: "Skin & Hair" },
+                  { key: "limfonodus", label: "Lymph Nodes" },
+                  { key: "mukosa", label: "Mucosa" },
                   { key: "abdomen", label: "Abdomen" },
-                  { key: "thoraks", label: "Thoraks" },
+                  { key: "thoraks", label: "Thorax" },
                 ].map((field) => (
                   <div key={field.key}>
                     <label className="block text-sm font-medium mb-1 text-gray-700">
@@ -421,8 +475,8 @@ export default function ExaminationsPage() {
                 {[
                   { key: "gastro", label: "Gastrointestinal" },
                   { key: "respiratory", label: "Respiratory" },
-                  { key: "tulangDanOtot", label: "Tulang & Otot" },
-                  { key: "ekstremitas", label: "Ekstremitas" },
+                  { key: "tulangDanOtot", label: "Musculoskeletal" },
+                  { key: "ekstremitas", label: "Extremities" },
                   { key: "urogenital", label: "Urogenital" },
                 ].map((field) => (
                   <div key={field.key}>
@@ -452,81 +506,47 @@ export default function ExaminationsPage() {
                 Diagnosis & Treatment
               </h3>
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1 text-gray-700">
-                    Diagnosis
-                  </label>
-                  <textarea
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                    value={formData.diagnosis}
-                    onChange={(e) =>
-                      setFormData({ ...formData, diagnosis: e.target.value })
-                    }
-                    rows={3}
-                    placeholder="Sehat, check-up rutin"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1 text-gray-700">
-                    Treatment
-                  </label>
-                  <textarea
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                    value={formData.treatment}
-                    onChange={(e) =>
-                      setFormData({ ...formData, treatment: e.target.value })
-                    }
-                    rows={3}
-                    placeholder="Vaksinasi rabies"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1 text-gray-700">
-                    Prescription
-                  </label>
-                  <textarea
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                    value={formData.prescription}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        prescription: e.target.value,
-                      })
-                    }
-                    rows={3}
-                    placeholder="Vitamin A, 1x sehari"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1 text-gray-700">
-                    Notes
-                  </label>
-                  <textarea
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                    value={formData.notes}
-                    onChange={(e) =>
-                      setFormData({ ...formData, notes: e.target.value })
-                    }
-                    rows={3}
-                    placeholder="Catatan tambahan..."
-                  />
-                </div>
+                {[
+                  { key: "diagnosis", label: "Diagnosis" },
+                  { key: "treatment", label: "Treatment" },
+                  { key: "prescription", label: "Prescription" },
+                  { key: "notes", label: "Notes" },
+                ].map((field) => (
+                  <div key={field.key}>
+                    <label className="block text-sm font-medium mb-1 text-gray-700">
+                      {field.label}
+                    </label>
+                    <textarea
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      value={formData[field.key as keyof typeof formData]}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          [field.key]: e.target.value,
+                        })
+                      }
+                      rows={3}
+                    />
+                  </div>
+                ))}
               </div>
             </div>
 
             <div className="flex gap-4">
               <button
                 type="submit"
-                className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition font-medium"
+                disabled={submitting}
+                className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition font-medium disabled:opacity-50"
               >
-                Save Examination
+                {submitting
+                  ? "Saving..."
+                  : isEditing
+                  ? "Update Examination"
+                  : "Save Examination"}
               </button>
               <button
                 type="button"
-                onClick={() => setShowForm(false)}
+                onClick={resetForm}
                 className="px-6 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400 transition font-medium"
               >
                 Cancel
@@ -536,7 +556,7 @@ export default function ExaminationsPage() {
         </div>
       )}
 
-      {/* Examination List */}
+      {/* EXAMINATION LIST */}
       <div className="space-y-4">
         <h2 className="text-2xl font-semibold mb-4">
           All Examinations ({examinations.length})
@@ -582,6 +602,7 @@ export default function ExaminationsPage() {
                   </div>
                 </div>
 
+                {/* Vital Signs Display */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                   {exam.suhu && (
                     <div className="bg-blue-50 p-3 rounded">
@@ -601,6 +622,7 @@ export default function ExaminationsPage() {
                   )}
                 </div>
 
+                {/* Diagnosis/Treatment Display */}
                 {exam.diagnosis && (
                   <div className="mb-3">
                     <p className="text-sm font-medium text-gray-700">
@@ -627,6 +649,22 @@ export default function ExaminationsPage() {
                     <p className="text-sm text-gray-600">{exam.prescription}</p>
                   </div>
                 )}
+
+                {/* Action Buttons */}
+                <div className="flex gap-2 mt-4 pt-4 border-t border-gray-200">
+                  <button
+                    onClick={() => startEdit(exam)}
+                    className="flex-1 bg-yellow-100 text-yellow-700 px-3 py-2 rounded hover:bg-yellow-200 transition text-sm font-medium"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(exam.id)}
+                    className="flex-1 bg-red-100 text-red-700 px-3 py-2 rounded hover:bg-red-200 transition text-sm font-medium"
+                  >
+                    Delete
+                  </button>
+                </div>
 
                 {exam.notes && (
                   <div className="mt-3 pt-3 border-t border-gray-200">
