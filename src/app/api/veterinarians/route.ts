@@ -37,6 +37,12 @@ export async function POST(request: Request) {
         noTelp: body.noTelp,
         email: body.email,
       },
+      // Include the same relations as GET
+      include: {
+        _count: {
+          select: { examinations: true },
+        },
+      },
     });
 
     return NextResponse.json(vet, { status: 201 });

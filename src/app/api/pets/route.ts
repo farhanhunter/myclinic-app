@@ -48,7 +48,9 @@ export async function POST(request: Request) {
         gender: body.gender,
       },
       include: {
-        client: true,
+        _count: {
+          select: { examinations: true },
+        },
       },
     });
 
