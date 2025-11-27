@@ -3,7 +3,7 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-// GET single client by ID
+// GET single client
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -44,13 +44,14 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
 
-    const updatedClient = await prisma.client.update({
+    const client = await prisma.client.update({
       where: { id },
       data: {
         nama: body.nama,
-        alamat: body.alamat || null,
-        noTelp: body.noTelp || null,
+        alamat: body.alamat,
+        noTelp: body.noTelp,
       },
+      // Include the same relations
       include: {
         pets: true,
         _count: {
@@ -59,7 +60,7 @@ export async function PUT(
       },
     });
 
-    return NextResponse.json(updatedClient);
+    return NextResponse.json(client);
   } catch (error) {
     console.error("Database error:", error);
     return NextResponse.json(
@@ -81,10 +82,7 @@ export async function DELETE(
       where: { id },
     });
 
-    return NextResponse.json({
-      success: true,
-      message: "Client deleted successfully",
-    });
+    return NextResponse.json({ message: "Client deleted successfully" });
   } catch (error) {
     console.error("Database error:", error);
     return NextResponse.json(

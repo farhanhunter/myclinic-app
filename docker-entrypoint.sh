@@ -20,17 +20,28 @@ npx prisma migrate deploy
 echo "🔧 Generating Prisma Client..."
 npx prisma generate
 
-# Run seed (support both .js and .ts)
+# Run clinic data seed
 if [ -f "prisma/seed.ts" ]; then
-  echo "🌱 Running seed from prisma/seed.ts..."
+  echo "🌱 Running clinic data seed from prisma/seed.ts..."
   npx tsx prisma/seed.ts
 elif [ -f "prisma/seed.js" ]; then
-  echo "🌱 Running seed from prisma/seed.js..."
+  echo "🌱 Running clinic data seed from prisma/seed.js..."
   node prisma/seed.js
 else
-  echo "⚠️  No seed file found, skipping..."
+  echo "⚠️  No clinic seed file found, skipping..."
 fi
 
-# Start Next.js
+# Run accounts seed
+if [ -f "prisma/seed-accounts.ts" ]; then
+  echo "🔐 Running accounts seed from prisma/seed-accounts.ts..."
+  npx tsx prisma/seed-accounts.ts
+elif [ -f "prisma/seed-accounts. js" ]; then
+  echo "🔐 Running accounts seed from prisma/seed-accounts. js..."
+  node prisma/seed-accounts.js
+else
+  echo "⚠️  No accounts seed file found, skipping..."
+fi
+
+# Start Next. js
 echo "🎯 Starting Next.js..."
 exec npm run dev

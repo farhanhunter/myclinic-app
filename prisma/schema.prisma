@@ -10,6 +10,20 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ========== AUTHENTICATION ==========
+model Account {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String
+  name      String
+  role      String   @default("user")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("mst_account")
+}
+
 // Identitas Klien (Pemilik Hewan)
 model Client {
   id               String    @id @default(cuid())

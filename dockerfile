@@ -1,7 +1,9 @@
 FROM node:20-alpine
 
-# Install netcat for healthcheck
-RUN apk add --no-cache netcat-openbsd
+RUN apk add --no-cache \
+    openssl \
+    openssl-dev \
+    netcat-openbsd
 
 WORKDIR /app
 

@@ -36,6 +36,13 @@ export async function POST(request: Request) {
         alamat: body.alamat,
         noTelp: body.noTelp,
       },
+      // Include the same relations as GET
+      include: {
+        pets: true,
+        _count: {
+          select: { examinations: true },
+        },
+      },
     });
 
     return NextResponse.json(client, { status: 201 });
