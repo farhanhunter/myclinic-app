@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 // Types (same as before)
 interface Client {
@@ -51,6 +52,7 @@ interface Examination {
 }
 
 export default function ExaminationsPage() {
+  const router = useRouter();
   const [examinations, setExaminations] = useState<Examination[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [pets, setPets] = useState<Pet[]>([]);
@@ -58,6 +60,16 @@ export default function ExaminationsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+
+  // Auth-aware fetch that redirects on 401
+  const authFetch = async (url: string, options?: RequestInit) => {
+    const res = await fetch(url, options);
+    if (res.status === 401) {
+      router.push("/login");
+      throw new Error("Unauthorized");
+    }
+    return res;
+  };
 
   // Form state
   const emptyForm = {
@@ -95,16 +107,17 @@ export default function ExaminationsPage() {
 
   useEffect(() => {
     fetchAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchAll = async () => {
     setLoading(true);
     try {
       const [examsRes, clientsRes, petsRes, vetsRes] = await Promise.all([
-        fetch("/api/examinations"),
-        fetch("/api/clients"),
-        fetch("/api/pets"),
-        fetch("/api/veterinarians"),
+        authFetch("/api/examinations"),
+        authFetch("/api/clients"),
+        authFetch("/api/pets"),
+        authFetch("/api/veterinarians"),
       ]);
 
       if (!examsRes.ok) throw new Error("Failed to fetch examinations");
@@ -120,6 +133,7 @@ export default function ExaminationsPage() {
       setVets(vetsData);
       setError(null);
     } catch (err) {
+      if ((err as Error).message === "Unauthorized") return;
       console.error(err);
       setError(err instanceof Error ? err.message : "Failed to load data");
     } finally {
@@ -135,7 +149,7 @@ export default function ExaminationsPage() {
     try {
       if (isEditing && formData.id) {
         // UPDATE
-        const res = await fetch(`/api/examinations/${formData.id}`, {
+        const res = await authFetch(`/api/examinations/${formData.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(formData),
@@ -153,7 +167,7 @@ export default function ExaminationsPage() {
         alert("Examination updated successfully!");
       } else {
         // CREATE
-        const res = await fetch("/api/examinations", {
+        const res = await authFetch("/api/examinations", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(formData),
@@ -171,6 +185,7 @@ export default function ExaminationsPage() {
 
       resetForm();
     } catch (error) {
+      if ((error as Error).message === "Unauthorized") return;
       console.error("Error:", error);
       alert(error instanceof Error ? error.message : "Operation failed");
     } finally {
@@ -183,7 +198,7 @@ export default function ExaminationsPage() {
     if (!confirm("Are you sure you want to delete this examination?")) return;
 
     try {
-      const res = await fetch(`/api/examinations/${id}`, {
+      const res = await authFetch(`/api/examinations/${id}`, {
         method: "DELETE",
       });
 
@@ -195,6 +210,7 @@ export default function ExaminationsPage() {
       setExaminations((prev) => prev.filter((e) => e.id !== id));
       alert("Examination deleted successfully!");
     } catch (error) {
+      if ((error as Error).message === "Unauthorized") return;
       console.error("Error:", error);
       alert(error instanceof Error ? error.message : "Delete failed");
     }

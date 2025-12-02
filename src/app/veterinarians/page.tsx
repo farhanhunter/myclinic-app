@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 interface Veterinarian {
   id: string;
@@ -16,6 +17,7 @@ interface Veterinarian {
 }
 
 export default function VeterinariansPage() {
+  const router = useRouter();
   const [vets, setVets] = useState<Veterinarian[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,8 +36,19 @@ export default function VeterinariansPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  // Auth-aware fetch that redirects on 401
+  const authFetch = async (url: string, options?: RequestInit) => {
+    const res = await fetch(url, options);
+    if (res.status === 401) {
+      router.push("/login");
+      throw new Error("Unauthorized");
+    }
+    return res;
+  };
+
   useEffect(() => {
     fetchVets();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchVets = async () => {
@@ -43,12 +56,13 @@ export default function VeterinariansPage() {
       setLoading(true);
       setError(null);
 
-      const res = await fetch("/api/veterinarians");
+      const res = await authFetch("/api/veterinarians");
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
 
       const data = await res.json();
       setVets(data);
     } catch (error) {
+      if ((error as Error).message === "Unauthorized") return;
       console.error("Error fetching veterinarians:", error);
       setError(
         error instanceof Error ? error.message : "Failed to fetch veterinarians"
@@ -66,7 +80,7 @@ export default function VeterinariansPage() {
     try {
       if (isEditing && formData.id) {
         // UPDATE
-        const res = await fetch(`/api/veterinarians/${formData.id}`, {
+        const res = await authFetch(`/api/veterinarians/${formData.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(formData),
@@ -82,7 +96,7 @@ export default function VeterinariansPage() {
         alert("Veterinarian updated successfully!");
       } else {
         // CREATE
-        const res = await fetch("/api/veterinarians", {
+        const res = await authFetch("/api/veterinarians", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(formData),
@@ -100,6 +114,7 @@ export default function VeterinariansPage() {
 
       resetForm();
     } catch (error) {
+      if ((error as Error).message === "Unauthorized") return;
       console.error("Error:", error);
       alert(error instanceof Error ? error.message : "Operation failed");
     } finally {
@@ -112,7 +127,7 @@ export default function VeterinariansPage() {
     if (!confirm(`Are you sure you want to delete ${name}?`)) return;
 
     try {
-      const res = await fetch(`/api/veterinarians/${id}`, {
+      const res = await authFetch(`/api/veterinarians/${id}`, {
         method: "DELETE",
       });
 
@@ -124,6 +139,7 @@ export default function VeterinariansPage() {
       setVets((prev) => prev.filter((v) => v.id !== id));
       alert("Veterinarian deleted successfully!");
     } catch (error) {
+      if ((error as Error).message === "Unauthorized") return;
       console.error("Error:", error);
       alert(error instanceof Error ? error.message : "Delete failed");
     }

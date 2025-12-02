@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 interface Client {
   id: string;
@@ -26,6 +27,7 @@ interface Pet {
 }
 
 export default function PetsPage() {
+  const router = useRouter();
   const [pets, setPets] = useState<Pet[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,17 +50,28 @@ export default function PetsPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  // Auth-aware fetch that redirects on 401
+  const authFetch = async (url: string, options?: RequestInit) => {
+    const res = await fetch(url, options);
+    if (res.status === 401) {
+      router.push("/login");
+      throw new Error("Unauthorized");
+    }
+    return res;
+  };
+
   // Fetch data on mount
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function fetchData() {
     setLoading(true);
     try {
       const [petsRes, clientsRes] = await Promise.all([
-        fetch("/api/pets"),
-        fetch("/api/clients"),
+        authFetch("/api/pets"),
+        authFetch("/api/clients"),
       ]);
 
       if (!petsRes.ok || !clientsRes.ok) {
@@ -72,6 +85,7 @@ export default function PetsPage() {
       setClients(clientsData);
       setError(null);
     } catch (err) {
+      if ((err as Error).message === "Unauthorized") return;
       console.error(err);
       setError(err instanceof Error ? err.message : "Failed to load data");
     } finally {
@@ -87,7 +101,7 @@ export default function PetsPage() {
     try {
       if (isEditing && form.id) {
         // UPDATE
-        const res = await fetch(`/api/pets/${form.id}`, {
+        const res = await authFetch(`/api/pets/${form.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(form),
@@ -100,7 +114,7 @@ export default function PetsPage() {
         alert("Pet updated successfully!");
       } else {
         // CREATE
-        const res = await fetch("/api/pets", {
+        const res = await authFetch("/api/pets", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(form),
@@ -115,6 +129,7 @@ export default function PetsPage() {
 
       resetForm();
     } catch (err) {
+      if ((err as Error).message === "Unauthorized") return;
       console.error(err);
       alert(err instanceof Error ? err.message : "Operation failed");
     } finally {
@@ -127,7 +142,7 @@ export default function PetsPage() {
     if (!confirm(`Are you sure you want to delete ${name}?`)) return;
 
     try {
-      const res = await fetch(`/api/pets/${id}`, {
+      const res = await authFetch(`/api/pets/${id}`, {
         method: "DELETE",
       });
 
@@ -136,6 +151,7 @@ export default function PetsPage() {
       setPets((prev) => prev.filter((p) => p.id !== id));
       alert("Pet deleted successfully!");
     } catch (err) {
+      if ((err as Error).message === "Unauthorized") return;
       console.error(err);
       alert(err instanceof Error ? err.message : "Delete failed");
     }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 interface Pet {
   id: string;
@@ -21,6 +22,7 @@ interface Client {
 }
 
 export default function ClientsPage() {
+  const router = useRouter();
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,8 +39,19 @@ export default function ClientsPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  // Auth-aware fetch that redirects on 401
+  const authFetch = async (url: string, options?: RequestInit) => {
+    const res = await fetch(url, options);
+    if (res.status === 401) {
+      router.push("/login");
+      throw new Error("Unauthorized");
+    }
+    return res;
+  };
+
   useEffect(() => {
     fetchClients();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchClients = async () => {
@@ -46,7 +59,7 @@ export default function ClientsPage() {
       setLoading(true);
       setError(null);
 
-      const res = await fetch("/api/clients");
+      const res = await authFetch("/api/clients");
 
       if (!res.ok) {
         throw new Error(`HTTP error! status: ${res.status}`);
@@ -55,6 +68,7 @@ export default function ClientsPage() {
       const data = await res.json();
       setClients(data);
     } catch (error) {
+      if ((error as Error).message === "Unauthorized") return;
       console.error("Error fetching clients:", error);
       setError(
         error instanceof Error ? error.message : "Failed to fetch clients"
@@ -72,7 +86,7 @@ export default function ClientsPage() {
     try {
       if (isEditing && formData.id) {
         // UPDATE
-        const res = await fetch(`/api/clients/${formData.id}`, {
+        const res = await authFetch(`/api/clients/${formData.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(formData),
@@ -90,7 +104,7 @@ export default function ClientsPage() {
         alert("Client updated successfully!");
       } else {
         // CREATE
-        const res = await fetch("/api/clients", {
+        const res = await authFetch("/api/clients", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(formData),
@@ -120,7 +134,7 @@ export default function ClientsPage() {
     if (!confirm(`Are you sure you want to delete ${name}?`)) return;
 
     try {
-      const res = await fetch(`/api/clients/${id}`, {
+      const res = await authFetch(`/api/clients/${id}`, {
         method: "DELETE",
       });
 
