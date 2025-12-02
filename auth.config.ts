@@ -7,15 +7,27 @@ export const authConfig = {
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
-      const isOnProtectedRoute =
+
+      // Protected page routes
+      const isOnProtectedPage =
         nextUrl.pathname.startsWith("/clients") ||
         nextUrl.pathname.startsWith("/pets") ||
         nextUrl.pathname.startsWith("/veterinarians") ||
         nextUrl.pathname.startsWith("/examinations");
 
-      if (isOnProtectedRoute) {
+      // Protected API routes
+      const isOnProtectedApi =
+        nextUrl.pathname.startsWith("/api/clients") ||
+        nextUrl.pathname.startsWith("/api/pets") ||
+        nextUrl.pathname.startsWith("/api/veterinarians") ||
+        nextUrl.pathname.startsWith("/api/examinations");
+
+      if (isOnProtectedPage || isOnProtectedApi) {
         if (isLoggedIn) return true;
-        return false; // Redirect unauthenticated users to login page
+
+        // For API routes, return false (will result in 401)
+        // For page routes, return false (will redirect to login)
+        return false;
       } else if (isLoggedIn && nextUrl.pathname === "/login") {
         return Response.redirect(new URL("/", nextUrl));
       }

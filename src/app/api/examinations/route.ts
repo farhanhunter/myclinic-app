@@ -1,10 +1,17 @@
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
+import { requireAuth } from "@/lib/auth-helper";
 
 const prisma = new PrismaClient();
 
 // GET all examinations
 export async function GET() {
+  // Check authentication
+  const authResult = await requireAuth();
+  if (!authResult.authorized) {
+    return authResult.response;
+  }
+
   try {
     const examinations = await prisma.examination.findMany({
       include: {
@@ -44,6 +51,12 @@ export async function GET() {
 
 // POST create examination
 export async function POST(request: Request) {
+  // Check authentication
+  const authResult = await requireAuth();
+  if (!authResult.authorized) {
+    return authResult.response;
+  }
+
   try {
     const body = await request.json();
 

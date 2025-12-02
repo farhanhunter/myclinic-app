@@ -7,7 +7,5 @@ export default auth((req) => {
 
 export const config = {
   // Protect all routes except static files, api auth, and public assets
-  matcher: [
-    "/((?! api/auth|_next/static|_next/image|favicon.ico|.*\\.png$).*)",
-  ],
+  matcher: ["/((?!api/auth|_next/static|_next/image|favicon.ico|.*\\.png$).*)"],
 };

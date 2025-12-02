@@ -1,10 +1,17 @@
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
+import { requireAuth } from "@/lib/auth-helper";
 
 const prisma = new PrismaClient();
 
 // GET all veterinarians
 export async function GET() {
+  // Check authentication
+  const authResult = await requireAuth();
+  if (!authResult.authorized) {
+    return authResult.response;
+  }
+
   try {
     const vets = await prisma.veterinarian.findMany({
       include: {
@@ -26,6 +33,12 @@ export async function GET() {
 
 // POST create veterinarian
 export async function POST(request: Request) {
+  // Check authentication
+  const authResult = await requireAuth();
+  if (!authResult.authorized) {
+    return authResult.response;
+  }
+
   try {
     const body = await request.json();
 

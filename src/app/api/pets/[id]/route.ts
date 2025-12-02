@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
+import { requireAuth } from "@/lib/auth-helper";
 
 const prisma = new PrismaClient();
 
@@ -8,8 +9,14 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Check authentication
+  const authResult = await requireAuth();
+  if (!authResult.authorized) {
+    return authResult.response;
+  }
+
   try {
-    const { id } = await params; // ← AWAIT params
+    const { id } = await params;
 
     const pet = await prisma.pet.findUnique({
       where: { id },
@@ -46,8 +53,14 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Check authentication
+  const authResult = await requireAuth();
+  if (!authResult.authorized) {
+    return authResult.response;
+  }
+
   try {
-    const { id } = await params; // ← AWAIT params
+    const { id } = await params;
     const body = await request.json();
 
     const updatedPet = await prisma.pet.update({
@@ -82,8 +95,14 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Check authentication
+  const authResult = await requireAuth();
+  if (!authResult.authorized) {
+    return authResult.response;
+  }
+
   try {
-    const { id } = await params; // ← AWAIT params
+    const { id } = await params;
 
     await prisma.pet.delete({
       where: { id },
