@@ -1,6 +1,6 @@
 import { auth } from "./auth";
 
-export default auth((req) => {
+export default auth(() => {
   // Middleware logic is handled by authConfig
   // You can add custom logic here if needed
 });
