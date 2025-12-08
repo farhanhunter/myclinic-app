@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
 
   const navItems = [
     { href: "/clients", label: "Clients", icon: "👤" },
@@ -14,6 +16,23 @@ export default function Navbar() {
     { href: "/veterinarians", label: "Vets", icon: "👨‍⚕️" },
     { href: "/examinations", label: "Exams", icon: "📋" },
   ];
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    try {
+      const response = await fetch("/api/auth/signout", {
+        method: "POST",
+      });
+      if (response.ok) {
+        router.push("/login");
+        router.refresh();
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      setLoggingOut(false);
+    }
+  };
 
   return (
     <nav className="bg-white shadow-md border-b sticky top-0 z-50">
@@ -41,6 +60,15 @@ export default function Navbar() {
                 {item.label}
               </Link>
             ))}
+            {/* Logout Button */}
+            <button
+              onClick={handleLogout}
+              disabled={loggingOut}
+              className="px-4 py-2 rounded-lg transition text-red-600 hover:bg-red-50 disabled:opacity-50"
+            >
+              <span className="mr-1">🚪</span>
+              {loggingOut ? "Logging out..." : "Logout"}
+            </button>
           </div>
 
           {/* Mobile Menu Button */}
@@ -91,6 +119,18 @@ export default function Navbar() {
                 {item.label}
               </Link>
             ))}
+            {/* Mobile Logout Button */}
+            <button
+              onClick={() => {
+                setIsOpen(false);
+                handleLogout();
+              }}
+              disabled={loggingOut}
+              className="block w-full text-left px-4 py-3 rounded-lg transition text-red-600 hover:bg-red-50 disabled:opacity-50"
+            >
+              <span className="mr-2">🚪</span>
+              {loggingOut ? "Logging out..." : "Logout"}
+            </button>
           </div>
         )}
       </div>
