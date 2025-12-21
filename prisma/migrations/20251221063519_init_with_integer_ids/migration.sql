@@ -1,6 +1,20 @@
 -- CreateTable
+CREATE TABLE "mst_account" (
+    "id" SERIAL NOT NULL,
+    "username" TEXT NOT NULL,
+    "password" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "role" TEXT NOT NULL DEFAULT 'user',
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "mst_account_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "clients" (
-    "id" TEXT NOT NULL,
+    "id" SERIAL NOT NULL,
     "nama" TEXT NOT NULL,
     "alamat" TEXT,
     "noTelp" TEXT,
@@ -12,8 +26,8 @@ CREATE TABLE "clients" (
 
 -- CreateTable
 CREATE TABLE "pets" (
-    "id" TEXT NOT NULL,
-    "clientId" TEXT NOT NULL,
+    "id" SERIAL NOT NULL,
+    "clientId" INTEGER NOT NULL,
     "namaHewan" TEXT NOT NULL,
     "spesies" TEXT NOT NULL,
     "breed" TEXT,
@@ -29,7 +43,7 @@ CREATE TABLE "pets" (
 
 -- CreateTable
 CREATE TABLE "veterinarians" (
-    "id" TEXT NOT NULL,
+    "id" SERIAL NOT NULL,
     "nama" TEXT NOT NULL,
     "nomorLisensi" TEXT,
     "spesialisasi" TEXT,
@@ -43,10 +57,10 @@ CREATE TABLE "veterinarians" (
 
 -- CreateTable
 CREATE TABLE "examinations" (
-    "id" TEXT NOT NULL,
-    "clientId" TEXT NOT NULL,
-    "petId" TEXT NOT NULL,
-    "veterinarianId" TEXT NOT NULL,
+    "id" SERIAL NOT NULL,
+    "clientId" INTEGER NOT NULL,
+    "petId" INTEGER NOT NULL,
+    "veterinarianId" INTEGER NOT NULL,
     "tanggalPemeriksaan" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "suhu" DOUBLE PRECISION,
     "heartRate" INTEGER,
@@ -74,6 +88,9 @@ CREATE TABLE "examinations" (
 
     CONSTRAINT "examinations_pkey" PRIMARY KEY ("id")
 );
+
+-- CreateIndex
+CREATE UNIQUE INDEX "mst_account_username_key" ON "mst_account"("username");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "veterinarians_nomorLisensi_key" ON "veterinarians"("nomorLisensi");
